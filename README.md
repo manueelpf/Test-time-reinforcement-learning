@@ -1,165 +1,153 @@
 # Word2Vec from Scratch in Pure NumPy
 
-A clean, interview-friendly implementation of **skip-gram with negative sampling (SGNS)** in pure **NumPy**.
+A clean, interview-friendly implementation of **Word2Vec (skip-gram with negative sampling)** written entirely in **NumPy**.
 
-This repository is intentionally structured like a small production-quality ML project rather than a single notebook. The core objective is to satisfy the task:
+The goal of this repository is to demonstrate a full implementation of the **core Word2Vec training loop**, including:
 
-- pure NumPy training loop
-- explicit forward pass, loss, gradients, and parameter updates
-- code that is easy to explain in a follow-up interview
-- no PyTorch / TensorFlow / JAX / other ML frameworks
+- forward pass
+- loss computation
+- gradient derivation
+- parameter updates
 
-## Why this variant?
+All implemented **without PyTorch, TensorFlow, JAX, or other ML frameworks**.
 
-I chose **skip-gram with negative sampling** because:
+This project was developed as part of a technical task to demonstrate understanding of **representation learning and optimization in language models**.
 
-1. it is one of the standard Word2Vec variants;
-2. it avoids the full softmax over the whole vocabulary at each step;
-3. it keeps the gradient derivation compact and explainable;
-4. it is practical to train in pure NumPy on a laptop.
+---
 
-## Project layout
+# Dataset
 
+For the main experiment, the model was trained on the **Project Gutenberg text of *The Importance of Being Earnest* by Oscar Wilde**.
+
+This dataset was chosen because:
+
+- it is **public domain**
+- it is **plain text**, making preprocessing simple
+- it contains **rich conversational language**
+- it is large enough (~24k tokens) to produce meaningful word co-occurrence statistics
+
+The file used in this project is:
+```text
+data/raw/importance_of_being_earnest.txt
+```
+
+Dataset statistics after preprocessing:
+
+| Metric | Value |
+|------|------|
+| Tokens | ~24,000 |
+| Vocabulary size | ~1,575 |
+| Skip-gram training pairs | ~144,000 |
+
+The dataset is intentionally modest in size so the full training pipeline can run **quickly on a laptop while still producing meaningful embeddings**.
+
+---
+
+# Why Skip-Gram with Negative Sampling
+
+I chose **skip-gram with negative sampling (SGNS)** because:
+
+1. it is one of the **standard Word2Vec variants**
+2. it avoids the expensive **full softmax over the vocabulary**
+3. it is **efficient to implement in pure NumPy**
+4. the gradient derivation remains **compact and easy to explain**
+
+This makes it ideal for demonstrating understanding of the algorithm in a technical interview.
+
+---
+
+# Project Layout
 ```text
 jetbrains_word2vec_repo/
 ├─ README.md
 ├─ requirements.txt
 ├─ .gitignore
 ├─ data/
-│  ├─ raw/
-│  │  └─ sample_corpus.txt
-│  └─ processed/
+│ ├─ raw/
+│ │ └─ importance_of_being_earnest.txt
+│ └─ processed/
 ├─ src/
-│  └─ word2vec/
-│     ├─ __init__.py
-│     ├─ config.py
-│     ├─ utils.py
-│     ├─ data.py
-│     ├─ model.py
-│     ├─ trainer.py
-│     └─ eval.py
+│ └─ word2vec/
+│ ├─ init.py
+│ ├─ config.py
+│ ├─ utils.py
+│ ├─ data.py
+│ ├─ model.py
+│ ├─ trainer.py
+│ └─ eval.py
 ├─ scripts/
-│  ├─ train.py
-│  └─ inspect.py
+│ ├─ train.py
+│ └─ query_embeddings.py
 └─ tests/
-   └─ test_gradients.py
+└─ test_gradients.py
 ```
 
-## What each part does
 
-- `config.py`: central training configuration.
-- `data.py`: tokenization, vocabulary building, subsampling, pair generation, and negative sampling.
-- `model.py`: SGNS model, forward pass, loss, gradients, and in-place parameter updates.
-- `trainer.py`: epoch loop, batching, logging, and checkpoint saving.
-- `eval.py`: cosine similarity and nearest-neighbor inspection.
-- `scripts/train.py`: CLI entrypoint for training.
-- `scripts/inspect.py`: inspect learned embeddings after training.
-- `tests/test_gradients.py`: finite-difference gradient check for the core SGNS step.
-
-## Installation
+# Installation
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Linux / macOS
 # .venv\Scripts\activate   # Windows PowerShell
+
 pip install -r requirements.txt
 ```
 
-## Train on the included sample corpus
-
+# Training the model
+To train on the Importance of Being Earnest dataset:
 ```bash
-python scripts/train.py \
-  --text-path data/raw/sample_corpus.txt \
-  --output-dir artifacts/run_01
+python scripts/train.py --text-path data/raw/importance_of_being_earnest.txt --embedding-dim 100 --window-size 5 --negative-samples 5 --epochs 10 --batch-size 256 --min-count 2 --dynamic-window --output-dir artifacts/run
 ```
 
-## Train on your own corpus
+These are the statistics
+```text
+Token count:     ~24,000
+Vocabulary size: ~1,575
+Training pairs:  ~144,000
+Final loss:      ~2.39
+```
+The decreasing loss confirms that the training loop and gradient computations are functioning correctly.
 
-Use any plain-text corpus:
+# Inspect Learned Word Embeddings
+After training, you can query nearest neighbors:
 
 ```bash
-python scripts/train.py \
-  --text-path path/to/corpus.txt \
-  --embedding-dim 100 \
-  --window-size 4 \
-  --negative-samples 5 \
-  --epochs 5 \
-  --batch-size 256 \
-  --output-dir artifacts/run_custom
+python scripts/query_embeddings.py --checkpoint artifacts/run/model.npz --vocab artifacts/run/vocab.json --query marriage
 ```
 
-## Inspect learned neighbors
+Example output:
+```text
+Nearest neighbors for "marriage"
 
-```bash
-python scripts/inspect.py \
-  --checkpoint artifacts/run_01/model.npz \
-  --vocab artifacts/run_01/vocab.json \
-  --query king
+engagement
+proposal
+wife
+family
 ```
 
-## Run the gradient test
+# Run Gradient Verification
+
+The project includes a finite-difference gradient check to verify the SGNS implementation.
 
 ```bash
 python -m tests.test_gradients
 ```
 
-## Implementation notes
-
-### Training objective
-
-For one positive pair `(center, context)` and `K` negative samples `n_1, ..., n_K`, the loss is
-
+Expected output:
 ```text
-L = -log σ(v_c · u_o) - Σ_j log σ(-v_c · u_{n_j})
+Gradient check passed.
 ```
 
-where:
+This confirms the analytical gradients match the numerical gradients.
 
-- `v_c` = input embedding of the center word
-- `u_o` = output embedding of the true context word
-- `u_{n_j}` = output embedding of a sampled negative word
+# Possible Extensions
 
-### Gradients used in code
-
-Let:
-
-- `s_pos = v_c · u_o`
-- `s_neg_j = v_c · u_{n_j}`
-
-Then:
-
-```text
-∂L/∂s_pos   = σ(s_pos) - 1
-∂L/∂s_neg_j = σ(s_neg_j)
-```
-
-So:
-
-```text
-∂L/∂v_c = (σ(s_pos) - 1) u_o + Σ_j σ(s_neg_j) u_{n_j}
-∂L/∂u_o = (σ(s_pos) - 1) v_c
-∂L/∂u_{n_j} = σ(s_neg_j) v_c
-```
-
-The implementation uses `np.add.at(...)` so repeated indices inside a batch are handled correctly.
-
-## Interview talking points
-
-Be ready to explain:
-
-- why row lookup replaces one-hot matrix multiplication;
-- why SGNS is much cheaper than full softmax;
-- why negative sampling uses a smoothed unigram distribution;
-- why we keep separate input and output embedding matrices during training;
-- how repeated word indices are accumulated safely in NumPy;
-- trade-offs between precomputing all training pairs and streaming them.
-
-## Possible extensions
+Potential improvements to this project:
 
 - CBOW implementation
 - hierarchical softmax
-- phrase mining
-- analogy evaluation set
-- learning-rate scheduling
+- alias-method negative sampler
+- phrase detection
+- analogy benchmark evaluation
+- learning-rate schedulers
 - checkpoint resume
-- alias-method negative sampler for even faster sampling
