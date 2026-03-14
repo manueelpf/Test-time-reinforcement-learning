@@ -1,9 +1,6 @@
 # Word2Vec from Scratch in Pure NumPy
 
-A clean, interview-friendly implementation of **Word2Vec (skip-gram with negative sampling)** written entirely in **NumPy**.
-
-The goal of this repository is to demonstrate a full implementation of the **core Word2Vec training loop**, including:
-
+A clean implementation of **Word2Vec (skip-gram with negative sampling)** written entirely in **NumPy** including:
 - forward pass
 - loss computation
 - gradient derivation
@@ -28,7 +25,7 @@ This dataset was chosen because:
 
 The file used in this project is:
 ```text
-data/raw/importance_of_being_earnest.txt
+data/raw/the_importance_of_being_earnest.txt
 ```
 
 Dataset statistics after preprocessing:
@@ -43,7 +40,7 @@ The dataset is intentionally modest in size so the full training pipeline can ru
 
 ---
 
-# Why Skip-Gram with Negative Sampling
+# Skip-Gram with Negative Sampling
 
 I chose **skip-gram with negative sampling (SGNS)** because:
 
@@ -52,13 +49,11 @@ I chose **skip-gram with negative sampling (SGNS)** because:
 3. it is **efficient to implement in pure NumPy**
 4. the gradient derivation remains **compact and easy to explain**
 
-This makes it ideal for demonstrating understanding of the algorithm in a technical interview.
-
 ---
 
 # Project Layout
 ```text
-jetbrains_word2vec_repo/
+test-time-reinforcement-learning/
 ├─ README.md
 ├─ requirements.txt
 ├─ .gitignore
@@ -137,7 +132,6 @@ Expected output:
 ```text
 Gradient check passed.
 ```
-
 This confirms the analytical gradients match the numerical gradients.
 
 # Possible Extensions
